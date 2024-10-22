@@ -1,21 +1,21 @@
 import gymnasium as gym
 import torch
-from stable_baselines3 import SAC
+from stable_baselines3 import A2C
 import matplotlib.pyplot as plt
 import time  # Eğitim süresi ölçümü için
 
 # MountainCarContinuous ortamını yükle
 env = gym.make('MountainCarContinuous-v0', render_mode="human")  # render_mode="human" ile görselleştirme aktif
 
-# SAC modelini tanımla
-model = SAC("MlpPolicy", env, verbose=1, tensorboard_log="./sac_mountaincar_tensorboard/")
+# A2C modelini tanımla
+model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./a2c_mountaincar_tensorboard/")
 
 # Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
 total_timesteps = 20000
 log_interval = 50
 episode_rewards = []
 
-# Her bir episodun maksimum adım sayısı (örneğin 1000 adım)
+# Her bir episodun maksimum adım sayısı
 max_steps_per_episode = 2000
 
 # Eğitim süresi ölçümü için başlangıç zamanı
@@ -36,14 +36,13 @@ def train_and_log(model, timesteps):
         episode_reward += reward
         steps_in_current_episode += 1
         
-        # Eğer adımlar maksimuma ulaşırsa ya da "done" olursa episod sıfırlanır
         if done or steps_in_current_episode >= max_steps_per_episode:
             if done:
                 count_done += 1
                 print("Başarıyla tamamlandı!")
             episode_rewards.append(episode_reward)
             episode_reward = 0
-            steps_in_current_episode = 0  # Adım sayısını sıfırla
+            steps_in_current_episode = 0
             obs, _ = env.reset()
             
         # Her 50 adımda bir ortalama reward yazdır
@@ -72,7 +71,7 @@ plt.figure(figsize=(10, 6))
 plt.plot(episode_rewards)
 plt.xlabel('Episode')
 plt.ylabel('Reward')
-plt.title('SAC Training on MountainCarContinuous')
+plt.title('A2C Training on MountainCarContinuous')
 
 # Eğitim süresi, toplam ödül ve diğer bilgileri grafiğe ekle
 num_episodes = len(episode_rewards)

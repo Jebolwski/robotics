@@ -1,6 +1,6 @@
 import gymnasium as gym
 import torch
-from stable_baselines3 import SAC
+from stable_baselines3 import A2C
 import numpy as np
 import matplotlib.pyplot as plt
 import time  # Eğitim süresi ölçümü için
@@ -9,7 +9,7 @@ import time  # Eğitim süresi ölçümü için
 env = gym.make('CarRacing-v2', render_mode="human")
 
 # A2C modelini tanımla
-model = SAC("CnnPolicy", env, verbose=1, tensorboard_log="./a2c_carracing_tensorboard/", buffer_size=100000)
+model = A2C("CnnPolicy", env, verbose=1, tensorboard_log="./a2c_carracing_tensorboard/")
 
 # Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
 total_timesteps = 10000
