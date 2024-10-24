@@ -8,11 +8,11 @@ import time  # Eğitim süresi ölçümü için
 # CarRacing ortamını yükle
 env = gym.make('CarRacing-v2', render_mode="human")
 
-# A2C modelini tanımla
-model = PPO("CnnPolicy", env, verbose=1, tensorboard_log="./a2c_carracing_tensorboard/")
+# PPO modelini tanımla
+model = PPO("CnnPolicy", env, verbose=1, tensorboard_log="./ppo_carracing_tensorboard/")
 
 # Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
-total_timesteps = 10000
+total_timesteps = 100000
 log_interval = 100
 episode_rewards = []
 successful_episodes = 0  # Başarılı episodları saymak için
@@ -24,6 +24,10 @@ max_steps_per_episode = 1500
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()
 
+# FPS ayarı
+target_fps = 90
+frame_time = 1.0 / target_fps  # Her frame için geçen süre (60 FPS için ~0.0167 saniye)
+
 # Modeli eğit
 def train_and_log(model, timesteps):
     obs, _ = env.reset()
@@ -33,10 +37,13 @@ def train_and_log(model, timesteps):
     step_count = 0
     global successful_episodes  # Global başarı sayacı
 
-    while step_count < total_timesteps:  # 4 episod tamamlanana kadar eğitime devam et
+    while step_count < total_timesteps:
         step_count += 1
         action, _ = model.predict(obs, deterministic=False)
         action = np.clip(action, env.action_space.low, env.action_space.high)
+
+        # Başlama zamanı
+        start_frame_time = time.time()
 
         obs, reward, done, _, _ = env.step(action)
         episode_reward += reward
@@ -62,6 +69,14 @@ def train_and_log(model, timesteps):
                 avg_reward = sum(recent_rewards) / len(recent_rewards)
                 print(f"Adım: {step_count}, Ortalama Reward: {round(avg_reward, 2)}")
 
+        # Render'ı göster
+        env.render()
+
+        # Frame süresi kadar bekle (60 FPS ayarı)
+        elapsed_time = time.time() - start_frame_time
+        if elapsed_time < frame_time:
+            time.sleep(frame_time - elapsed_time)
+
     return episode_rewards
 
 # Modeli eğit ve sonuçları logla
@@ -80,7 +95,7 @@ plt.figure(figsize=(10, 6))
 plt.plot(episode_rewards)
 plt.xlabel('Episode')
 plt.ylabel('Reward')
-plt.title('A2C Training on CarRacing-v2')
+plt.title('PPO Training on CarRacing-v2')
 
 # Episode numarasını ve toplam ödülü sağ alt köşeye ekle
 num_episodes = len(episode_rewards)
@@ -91,7 +106,7 @@ plt.text(0.95, 0.15, f'Training Time: {round(training_time, 2)} sec', fontsize=1
 plt.show()
 
 # Eğitim sonrası modelin kaydedilmesi
-model.save("a2c_carracing_v2")
+model.save("ppo_carracing_v2")
 
 # Render'ı kapatmak için
 env.close()
