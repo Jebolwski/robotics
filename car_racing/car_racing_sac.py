@@ -9,17 +9,23 @@ import time  # Eğitim süresi ölçümü için
 env = gym.make('CarRacing-v2', render_mode="human")
 
 # A2C modelini tanımla
-model = SAC("CnnPolicy", env, verbose=1, tensorboard_log="./a2c_carracing_tensorboard/", buffer_size=100000)
+model = SAC("CnnPolicy",
+    env,
+    verbose=1,
+    tensorboard_log="./a2c_carracing_tensorboard/",
+    learning_rate=0.0003,
+    gamma=0.98,
+    buffer_size=300000)
 
 # Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
-total_timesteps = 10000
-log_interval = 100
+total_timesteps = 50000
+log_interval = 200
 episode_rewards = []
 successful_episodes = 0  # Başarılı episodları saymak için
 success_threshold = 900  # Başarı için gereken ödül eşiği
 
 # Her bir episodun maksimum adım sayısı
-max_steps_per_episode = 1500
+max_steps_per_episode = 500
 
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()
@@ -33,7 +39,7 @@ def train_and_log(model, timesteps):
     step_count = 0
     global successful_episodes  # Global başarı sayacı
 
-    while step_count < total_timesteps:  # 4 episod tamamlanana kadar eğitime devam et
+    while step_count < timesteps:  # 4 episod tamamlanana kadar eğitime devam et
         step_count += 1
         action, _ = model.predict(obs, deterministic=False)
         action = np.clip(action, env.action_space.low, env.action_space.high)
@@ -66,7 +72,7 @@ def train_and_log(model, timesteps):
 
 # Modeli eğit ve sonuçları logla
 episode_rewards = train_and_log(model, total_timesteps)
-
+print(episode_rewards)
 # Eğitim süresi ölçümü için bitiş zamanı
 end_time = time.time()
 training_time = end_time - start_time
@@ -80,7 +86,7 @@ plt.figure(figsize=(10, 6))
 plt.plot(episode_rewards)
 plt.xlabel('Episode')
 plt.ylabel('Reward')
-plt.title('A2C Training on CarRacing-v2')
+plt.title('SAC Training on CarRacing-v2')
 
 # Episode numarasını ve toplam ödülü sağ alt köşeye ekle
 num_episodes = len(episode_rewards)

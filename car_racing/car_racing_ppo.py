@@ -9,17 +9,24 @@ import time  # Eğitim süresi ölçümü için
 env = gym.make('CarRacing-v2', render_mode="human")
 
 # PPO modelini tanımla
-model = PPO("CnnPolicy", env, verbose=1, tensorboard_log="./ppo_carracing_tensorboard/")
+model = PPO("CnnPolicy",
+    env,
+    verbose=1,
+    tensorboard_log="./a2c_carracing_tensorboard/",
+    learning_rate=0.0003,
+    gamma=0.98,
+    n_steps=5,
+    gae_lambda=0.9)
 
 # Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
-total_timesteps = 100000
+total_timesteps = 50000
 log_interval = 100
 episode_rewards = []
 successful_episodes = 0  # Başarılı episodları saymak için
 success_threshold = 900  # Başarı için gereken ödül eşiği
 
 # Her bir episodun maksimum adım sayısı
-max_steps_per_episode = 1500
+max_steps_per_episode = 500
 
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()
