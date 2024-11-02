@@ -1,108 +1,97 @@
 import gymnasium as gym
+import time
 import torch
 from stable_baselines3 import SAC
-import numpy as np
+from stable_baselines3.common.callbacks import BaseCallback
 import matplotlib.pyplot as plt
-import time  # Eğitim süresi ölçümü için
+
+# Ödülleri toplamak ve adım sayacını kullanmak için callback tanımlama
+class RewardCallback(BaseCallback):
+    def __init__(self, log_interval=300, reset_interval=500):
+        super(RewardCallback, self).__init__()
+        self.episode_rewards = []
+        self.log_interval = log_interval
+        self.reset_interval = reset_interval
+        self.step_count = 0  # Adım sayacı
+        self.current_episode_reward = 0  # Mevcut episod ödülü
+
+    def _on_step(self) -> bool:
+        # Env'den ödülleri toplamak
+        self.step_count += 1
+        reward = self.locals['rewards'][0]
+        self.current_episode_reward += reward
+
+        if self.current_episode_reward<-60:
+            self.episode_rewards.append(self.current_episode_reward)
+            self.current_episode_reward = 0  
+            self.locals['env'].reset()
+            print("500 adım tamamlandı, ortam sıfırlanıyor.")
+            
+        if self.step_count % self.log_interval == 0:
+            print(self.episode_rewards)
+            # 300 adımda bir toplam ödülü yazdır
+            print(f"Adım: {self.step_count}, Son 10 Episode Toplam Reward: {round(sum(self.episode_rewards[-10:]),2)}")
+
+        # Eğer bir episod tamamlandıysa, ödülü kaydet
+        if self.locals['dones'][0]:
+            self.episode_rewards.append(self.current_episode_reward)
+            self.current_episode_reward = 0  # Mevcut episod ödülünü sıfırla
+        
+        # Her 500 adımda bir ortamı sıfırla
+        if self.step_count % self.reset_interval == 0:
+            self.episode_rewards.append(self.current_episode_reward)
+            self.current_episode_reward = 0  
+            print("750 adım tamamlandı, ortam sıfırlanıyor.")
+            self.locals['env'].reset()
+        
+        return True
 
 # CarRacing ortamını yükle
-env = gym.make('CarRacing-v2', render_mode="human")
+env = gym.make('CarRacing-v2', render_mode="human")  # Görselleştirme için render_mode="human"
 
-# A2C modelini tanımla
-model = SAC("CnnPolicy",
-    env,
-    verbose=1,
-    tensorboard_log="./a2c_carracing_tensorboard/",
-    learning_rate=0.0003,
-    gamma=0.98,
-    buffer_size=300000)
+# SAC modelini tanımla
+# SAC modelini tanımla, buffer_size'ı küçült
+model = SAC("MlpPolicy", env, verbose=1, tensorboard_log="./sac_carracing_tensorboard/", buffer_size=10000)
 
-# Eğitim adedi ve episod sonuçlarını toplamak için değişkenler
-total_timesteps = 50000
-log_interval = 200
-episode_rewards = []
-successful_episodes = 0  # Başarılı episodları saymak için
-success_threshold = 900  # Başarı için gereken ödül eşiği
 
-# Her bir episodun maksimum adım sayısı
-max_steps_per_episode = 500
+# Eğitim parametreleri
+total_timesteps = 15000
+log_interval = 50
+
+# Callback örneğini oluştur
+reward_callback = RewardCallback(log_interval=250, reset_interval=750)
 
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()
 
 # Modeli eğit
-def train_and_log(model, timesteps):
-    obs, _ = env.reset()
-    episode_reward = 0
-    steps_in_current_episode = 0
-    episode_done_count = 0
-    step_count = 0
-    global successful_episodes  # Global başarı sayacı
+model.learn(total_timesteps=total_timesteps, log_interval=log_interval, callback=reward_callback)
 
-    while step_count < timesteps:  # 4 episod tamamlanana kadar eğitime devam et
-        step_count += 1
-        action, _ = model.predict(obs, deterministic=False)
-        action = np.clip(action, env.action_space.low, env.action_space.high)
-
-        obs, reward, done, _, _ = env.step(action)
-        episode_reward += reward
-        steps_in_current_episode += 1
-
-        # Eğer adımlar maksimuma ulaşırsa ya da "done" olursa episod sıfırlanır
-        if done or steps_in_current_episode >= max_steps_per_episode:
-            episode_rewards.append(episode_reward)
-            episode_done_count += 1 if done else 0
-
-            # Başarılı episodları kontrol et
-            if episode_reward >= success_threshold:
-                successful_episodes += 1  # Başarılı episodları say
-
-            episode_reward = 0
-            steps_in_current_episode = 0  # Adım sayısını sıfırla
-            obs, _ = env.reset()
-
-        # Her log_interval'da bir ortalama reward yazdır
-        if step_count % log_interval == 0:
-            recent_rewards = episode_rewards[-10:] if len(episode_rewards) >= 10 else episode_rewards
-            if len(recent_rewards) > 0:
-                avg_reward = sum(recent_rewards) / len(recent_rewards)
-                print(f"Adım: {step_count}, Ortalama Reward: {round(avg_reward, 2)}")
-
-    return episode_rewards
-
-# Modeli eğit ve sonuçları logla
-episode_rewards = train_and_log(model, total_timesteps)
-print(episode_rewards)
 # Eğitim süresi ölçümü için bitiş zamanı
 end_time = time.time()
 training_time = end_time - start_time
 
-# Toplam ödülü hesapla
-total_reward = sum(episode_rewards)
-print(f"Toplam Ödül: {total_reward}")
-
 # Eğitim sonrası sonuçları görselleştirme
+episode_rewards = reward_callback.episode_rewards
+total_reward = sum(episode_rewards)
+
 plt.figure(figsize=(10, 6))
-plt.plot(episode_rewards)
+plt.plot(episode_rewards, label="Episode Reward")
 plt.xlabel('Episode')
 plt.ylabel('Reward')
-plt.title('SAC Training on CarRacing-v2')
+plt.title('SAC Training on CarRacing')
 
-# Episode numarasını ve toplam ödülü sağ alt köşeye ekle
-num_episodes = len(episode_rewards)
-plt.text(0.95, 0.05, f'Episodes: {num_episodes}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
-plt.text(0.95, 0.10, f'Total Reward: {total_reward:.2f}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
-plt.text(0.95, 0.15, f'Training Time: {round(training_time, 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
+# Eğitim süresi, toplam ödül ve diğer bilgileri grafiğe ekle
+plt.text(0.95, 0.05, f'Total Reward: {round(total_reward, 2)}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
+plt.text(0.95, 0.10, f'Training Time: {round(training_time, 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
+plt.text(0.95, 0.15, f'Average Reward: {round(sum(episode_rewards)/len(episode_rewards), 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
 
+plt.legend()
 plt.show()
 
-# Eğitim sonrası modelin kaydedilmesi
-model.save("a2c_carracing_v2")
-
-# Render'ı kapatmak için
-env.close()
-
-# Eğitim süresi ve başarı sayısını yazdır
+# Eğitim süresi bilgilerini yazdır
 print(f"Eğitim süresi: {round(training_time, 2)} saniye")
-print(f"Başarıyla tamamlanan episod sayısı: {successful_episodes}")
-print(f"Tamamlanan episode sayısı: {num_episodes}")
+print(f"Toplam ödül: {round(total_reward, 2)}")
+
+# Çevreyi kapat
+env.close()
