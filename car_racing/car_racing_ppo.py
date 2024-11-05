@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 # Ödülleri toplamak ve adım sayacını kullanmak için callback tanımlama
 class RewardCallback(BaseCallback):
-    def __init__(self, log_interval=300, reset_interval=500):
+    def __init__(self, log_interval=750, reset_interval=750):
         super(RewardCallback, self).__init__()
         self.episode_rewards = []
         self.log_interval = log_interval
@@ -25,7 +25,7 @@ class RewardCallback(BaseCallback):
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  
             self.locals['env'].reset()
-            print("500 adım tamamlandı, ortam sıfırlanıyor.")
+            print("750 adım tamamlandı, ortam sıfırlanıyor.")
             
         if self.step_count % self.log_interval == 0:
             print(self.episode_rewards)
@@ -59,7 +59,7 @@ total_timesteps = 15000
 log_interval = 50
 
 # Callback örneğini oluştur
-reward_callback = RewardCallback(log_interval=250, reset_interval=750)
+reward_callback = RewardCallback(log_interval=750, reset_interval=750)
 
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()

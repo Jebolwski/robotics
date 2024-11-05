@@ -25,7 +25,6 @@ class RewardCallback(BaseCallback):
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  
             self.locals['env'].reset()
-            print("500 adım tamamlandı, ortam sıfırlanıyor.")
             
         if self.step_count % self.log_interval == 0:
             print(self.episode_rewards)
