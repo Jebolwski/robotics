@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 # Ödülleri toplamak ve adım sayacını kullanmak için callback tanımlama
 class RewardCallback(BaseCallback):
-    def __init__(self, log_interval=300, reset_interval=500):
+    def __init__(self, log_interval=750, reset_interval=750):
         super(RewardCallback, self).__init__()
         self.episode_rewards = []
         self.log_interval = log_interval
@@ -21,7 +21,7 @@ class RewardCallback(BaseCallback):
         reward = self.locals['rewards'][0]
         self.current_episode_reward += reward
 
-        if self.current_episode_reward<-60:
+        if self.current_episode_reward < -60:
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  
             self.locals['env'].reset()
@@ -35,12 +35,13 @@ class RewardCallback(BaseCallback):
         if self.locals['dones'][0]:
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  # Mevcut episod ödülünü sıfırla
+            self.locals['env'].reset()
         
-        # Her 500 adımda bir ortamı sıfırla
+        # Her 750 adımda bir ortamı sıfırla
         if self.step_count % self.reset_interval == 0:
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  
-            print("500 adım tamamlandı, ortam sıfırlanıyor.")
+            print("750 adım tamamlandı, ortam sıfırlanıyor.")
             self.locals['env'].reset()
         
         return True
@@ -49,16 +50,14 @@ class RewardCallback(BaseCallback):
 env = gym.make('CarRacing-v2', render_mode="human")  # Görselleştirme için render_mode="human"
 
 # A2C modelini tanımla
-model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./a2c_carracing_tensorboard/",
-    learning_rate=0.001,
-    gae_lambda=0.95)
+model = A2C("MlpPolicy", env, verbose=0, tensorboard_log="./a2c_carracing_tensorboard/",gae_lambda=0.55)
 
 # Eğitim parametreleri
-total_timesteps = 15000
-log_interval = 50
+total_timesteps = 50000
+log_interval = 750
 
 # Callback örneğini oluştur
-reward_callback = RewardCallback(log_interval=250, reset_interval=750)
+reward_callback = RewardCallback(log_interval=750, reset_interval=750)
 
 # Eğitim süresi ölçümü için başlangıç zamanı
 start_time = time.time()
@@ -83,7 +82,7 @@ plt.title('A2C Training on CarRacing')
 # Eğitim süresi, toplam ödül ve diğer bilgileri grafiğe ekle
 plt.text(0.95, 0.05, f'Total Reward: {round(total_reward, 2)}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
 plt.text(0.95, 0.10, f'Training Time: {round(training_time, 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
-plt.text(0.95, 0.15, f'Average Reward: {round(sum(episode_rewards)/len(episode_rewards), 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
+plt.text(0.95, 0.15, f'Average Reward: {round(sum(episode_rewards)/len(episode_rewards), 2)}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
 
 plt.legend()
 plt.show()

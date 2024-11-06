@@ -36,6 +36,7 @@ class RewardCallback(BaseCallback):
         if self.locals['dones'][0]:
             self.episode_rewards.append(self.current_episode_reward)
             self.current_episode_reward = 0  # Mevcut episod ödülünü sıfırla
+            self.locals['env'].reset()
         
         # Her 500 adımda bir ortamı sıfırla
         if self.step_count % self.reset_interval == 0:
@@ -50,13 +51,13 @@ class RewardCallback(BaseCallback):
 env = gym.make('CarRacing-v2', render_mode="human")  # Görselleştirme için render_mode="human"
 
 # PPO modelini tanımla
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./ppo_carracing_tensorboard/",
+model = PPO("MlpPolicy", env, verbose=0, tensorboard_log="./ppo_carracing_tensorboard/",
     learning_rate=0.001,
     gae_lambda=0.95)
 
 # Eğitim parametreleri
-total_timesteps = 15000
-log_interval = 50
+total_timesteps = 50000
+log_interval = 750
 
 # Callback örneğini oluştur
 reward_callback = RewardCallback(log_interval=750, reset_interval=750)
@@ -84,7 +85,7 @@ plt.title('PPO Training on CarRacing')
 # Eğitim süresi, toplam ödül ve diğer bilgileri grafiğe ekle
 plt.text(0.95, 0.05, f'Total Reward: {round(total_reward, 2)}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
 plt.text(0.95, 0.10, f'Training Time: {round(training_time, 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
-plt.text(0.95, 0.15, f'Average Reward: {round(sum(episode_rewards)/len(episode_rewards), 2)} sec', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
+plt.text(0.95, 0.15, f'Average Reward: {round(sum(episode_rewards)/len(episode_rewards), 2)}', fontsize=12, ha='right', va='bottom', transform=plt.gca().transAxes)
 
 plt.legend()
 plt.show()
