@@ -47,7 +47,7 @@ class RewardCallback(BaseCallback):
         return True
 
 # CarRacing ortamını yükle
-env = gym.make('CarRacing-v2', render_mode="human")  # Görselleştirme için render_mode="human"
+env = gym.make('CarRacing-v2', render_mode="human")
 
 # SAC modelini tanımla
 model = SAC("MlpPolicy", env, verbose=0, tensorboard_log="./sac_carracing_tensorboard/",
